@@ -213,34 +213,22 @@ def init_add_monitors():
 
 def initialize_db():
     global session, SERVER_MODE, engine, Session
-    DATABASE_NAME = os.environ['MYSQL_DATABASE']
+    DATABASE_NAME = os.environ['POSTGRES_DB']
 
-    db_database = os.environ['MYSQL_DATABASE']
-    db_user = os.environ['MYSQL_USER']
-    db_password = os.environ['MYSQL_PASSWORD']
-    db_ip_address = os.environ['MYSQL_IP_ADDRESS']
-    db_port = os.environ['MYSQL_PORT']
+    db_database = os.environ['POSTGRES_DB']
+    db_user = os.environ['POSTGRES_USER']
+    db_password = os.environ['POSTGRES_PASSWORD']
+    db_ip_address = os.environ['POSTGRES_HOST']
+    db_port = os.environ['POSTGRES_PORT']
     SERVER_MODE = os.environ['ENV']
-    MYSQL_CONNECTOR_STRING = f'mysql+mysqlconnector://{db_user}:{db_password}@{db_ip_address}:{db_port}/{db_database}?charset=utf8mb4&collation=utf8mb4_general_ci'
+    POSTGRES_CONNECTOR_STRING = f'postgresql+psycopg2://{db_user}:{db_password}@{db_ip_address}:{db_port}/{db_database}'
 
-    engine = db.create_engine(MYSQL_CONNECTOR_STRING, echo=True)
+    engine = db.create_engine(POSTGRES_CONNECTOR_STRING, echo=True)
     Session = sessionmaker(bind=engine)
     session = None
     session = Session()
-    session.execute(f"CREATE DATABASE IF NOT EXISTS {DATABASE_NAME} CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci';")
-    session.execute('commit')
-    #session.close()
 
-    # engine = db.create_engine(f'{MYSQL_CONNECTOR_STRING}?charset=utf8mb4', echo=True)
-    # Session = sessionmaker(bind=engine)
-    # session = None
-    # session = Session()
-
-    # A hack to support unicode for emojis
-    session.execute('SET NAMES "utf8mb4" COLLATE "utf8mb4_unicode_ci"')
-    session.execute(f'ALTER DATABASE {DATABASE_NAME} CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;')
-    session.execute('commit')
-
+    # PostgreSQL automatically supports UTF-8 encoding, no special configuration needed
     init_db()
     init_data()
 

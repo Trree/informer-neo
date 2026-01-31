@@ -1,7 +1,7 @@
-SQLAlchemy==1.4.54
+SQLAlchemy==2.0.36
 sqlalchemy-migrate==0.13.0
-Telethon==1.36.0
-mysql-connector-python==8.4.0
+Telethon==1.38.1
+psycopg2-binary==2.9.10
 gspread==6.1.4
 google-auth==2.37.0
 google-auth-oauthlib==1.2.1

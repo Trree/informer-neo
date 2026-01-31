@@ -18,12 +18,12 @@ services:
   db_informer:
     env_file:
       - informer.env
-    container_name: db_informer   
-    image: mysql:5.7
+    container_name: db_informer
+    image: postgres:15-alpine
     volumes:
-      - db_data:/var/lib/mysql
+      - db_data:/var/lib/postgresql/data
     ports:
-    - "3307:3306"
+    - "5432:5432"
 
 
 # =========================
@@ -33,9 +33,9 @@ services:
     env_file:
       - informer.env
     environment:
-      # Override MySQL host to use Docker service name instead of localhost
-      - MYSQL_IP_ADDRESS=db_informer
-      - MYSQL_PORT=3306
+      # Override PostgreSQL host to use Docker service name instead of localhost
+      - POSTGRES_HOST=db_informer
+      - POSTGRES_PORT=5432
     build: .
     command: /bin/bash -c "sleep 15; python3 bot.py ${TELEGRAM_ACCOUNT_ID}"
     container_name: app_informer

@@ -42,11 +42,11 @@ logging.getLogger().setLevel(logging.INFO)
 class TGInformer:
 
     def __init__(self,
-        db_database = os.environ['MYSQL_DATABASE'],
-        db_user = os.environ['MYSQL_USER'],
-        db_password = os.environ['MYSQL_PASSWORD'],
-        db_ip_address = os.environ['MYSQL_IP_ADDRESS'],
-        db_port = os.environ['MYSQL_PORT'],
+        db_database = os.environ['POSTGRES_DB'],
+        db_user = os.environ['POSTGRES_USER'],
+        db_password = os.environ['POSTGRES_PASSWORD'],
+        db_ip_address = os.environ['POSTGRES_HOST'],
+        db_port = os.environ['POSTGRES_PORT'],
         tg_account_id = os.environ['TELEGRAM_ACCOUNT_ID'],
         tg_notifications_channel_id = os.environ['TELEGRAM_NOTIFICATIONS_CHANNEL_ID'],
         google_credentials_path = os.environ['GOOGLE_APPLICATION_CREDENTIALS'],
@@ -79,8 +79,8 @@ class TGInformer:
         # ------------------------------------------------
 
         self.SERVER_MODE = os.environ['ENV']
-        self.MYSQL_CONNECTOR_STRING = f'mysql+mysqlconnector://{db_user}:{db_password}@{db_ip_address}:{db_port}/{db_database}?charset=utf8mb4&collation=utf8mb4_general_ci'
-        
+        self.POSTGRES_CONNECTOR_STRING = f'postgresql+psycopg2://{db_user}:{db_password}@{db_ip_address}:{db_port}/{db_database}'
+
         logging.info(f'Starting Informer SERVER_MODE: {self.SERVER_MODE}\n')
 
         # -----------------------------------------
@@ -124,8 +124,8 @@ class TGInformer:
         # Initialize database
         # -------------------
 
-        logging.info(f'Setting up MySQL connector with connector string: {self.MYSQL_CONNECTOR_STRING} ... \n')     
-        self.engine = db.create_engine(self.MYSQL_CONNECTOR_STRING)  # , echo=True
+        logging.info(f'Setting up PostgreSQL connector with connector string: {self.POSTGRES_CONNECTOR_STRING} ... \n')
+        self.engine = db.create_engine(self.POSTGRES_CONNECTOR_STRING)  # , echo=True
         self.Session = sessionmaker(bind=self.engine)
         self.session = self.Session()
 

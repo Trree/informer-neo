@@ -9,8 +9,8 @@ RUN apk update && apk upgrade && \
     python3 \
     libffi-dev \
     openssl-dev \
-    mariadb-dev \
-    mariadb-connector-c-dev
+    postgresql-dev \
+    postgresql-client
 COPY app /usr/local/app
 WORKDIR /usr/local/app
 RUN pip3 install -r requirements.txt
