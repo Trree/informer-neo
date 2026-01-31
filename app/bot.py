@@ -25,17 +25,9 @@ from informer import TGInformer
 #   virtualenv venv
 #   source venv/bin/activate
 #   pip install -r requirements.txt
-#   python3 informer.py <account_id>
+#   python3 informer.py
 
 # Read more: https://github.com/paulpierre/informer/
-
-try:
-    account_id = sys.argv[1]
-except:
-    raise Exception('informer.py <account_id> - account_id is a required param')
-
-if not account_id:
-    raise Exception('Account ID required')
 
 if __name__ == '__main__':
 
