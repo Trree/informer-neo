@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, DateTime, ForeignKey, Table
+from sqlalchemy import Boolean, Column, Integer, String, DateTime, ForeignKey, Table, BigInteger
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
@@ -11,7 +11,7 @@ class Account(Base):
     """
     __tablename__ = 'account'
     id = Column(Integer, index=True, primary_key=True, autoincrement=True)
-    account_id = Column(Integer, nullable=False, index=True)
+    account_id = Column(BigInteger, nullable=False, index=True)
     account_api_id = Column(Integer, default=None, nullable=False)
     account_api_hash = Column(String(50), default=None, nullable=False)
     account_is_bot = Column(Boolean(), default=None)
@@ -89,7 +89,7 @@ class Keyword(Base):
     keyword_tmodified = Column(DateTime, default=datetime.now())
     keyword_tcreate = Column(DateTime, default=datetime.now())
 
-    notifications = relationship('Notification')
+    notifications = relationship('Notification', back_populates='keyword')
 
 
 class Message(Base):
@@ -117,7 +117,7 @@ class Message(Base):
     user = relationship('ChatUser', back_populates='messages')
     account = relationship('Account', back_populates='messages')
     channel = relationship('Channel', back_populates='messages')
-    notifications = relationship('Notification')
+    notifications = relationship('Notification', back_populates='message')
 
 
 class Monitor(Base):
@@ -146,7 +146,7 @@ class Notification(Base):
     chat_user_id = Column(Integer, ForeignKey('chat_user.chat_user_id'), nullable=False)
     notification_tnotify = Column(DateTime, default=datetime.now())
 
-    keyword = relationship('Keyword')
-    message = relationship('Message')
-    channel = relationship('Channel')
+    keyword = relationship('Keyword', back_populates='notifications')
+    message = relationship('Message', back_populates='notifications')
+    channel = relationship('Channel', back_populates='notifications')
     user = relationship('ChatUser')
