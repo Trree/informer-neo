@@ -91,6 +91,9 @@ class TGInformer:
         if not tg_account_id:
             raise Exception('Must specify "tg_account_id" in informer.env file for bot instance')
 
+        if not tg_notifications_channel_id or tg_notifications_channel_id.strip() == '':
+            raise Exception('Must specify "TELEGRAM_NOTIFICATIONS_CHANNEL_ID" in environment variables for notifications')
+
         # -----------------------
         # Initialize Google Sheet
         # -----------------------
@@ -218,19 +221,19 @@ class TGInformer:
     # Get user info by ID
     # ===================
     async def get_user_by_id(self, user_id=None):
-        u = await self.client.get_input_entity(PeerUser(user_id=user_id))
+        u = await self.client.get_entity(user_id)
         user = await self.client(GetFullUserRequest(u))
 
         logging.info(f'{sys._getframe().f_code.co_name}: User ID {user_id} has data:\n {user}\n\n')
 
         return {
-            'username': user.user.username,
-            'first_name': user.user.first_name,
-            'last_name': user.user.last_name,
-            'is_verified': user.user.verified,
-            'is_bot': user.user.bot,
-            'is_restricted': user.user.restricted,
-            'phone': user.user.phone,
+            'username': user.users[0].username,
+            'first_name': user.users[0].first_name,
+            'last_name': user.users[0].last_name,
+            'is_verified': user.users[0].verified,
+            'is_bot': user.users[0].bot,
+            'is_restricted': user.users[0].restricted,
+            'phone': user.users[0].phone,
         }
 
     # ==============================
@@ -519,7 +522,15 @@ class TGInformer:
 
         # Lets get who sent the message
         sender = await event.get_sender()
-        sender_username = sender.username
+
+        # Handle anonymous messages or channel posts (sender can be None)
+        if sender is None:
+            # Try to get username from post_author or use a default
+            sender_username = message_obj.post_author if message_obj.post_author else "Anonymous"
+            # For anonymous messages, we can't get user details, so skip user DB operations
+            sender_id = None
+        else:
+            sender_username = sender.username if sender.username else sender.first_name or "Unknown"
 
         channel_id = abs(channel_id)
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -560,66 +571,70 @@ class TGInformer:
         # --------------
         # Add user to DB
         # --------------
-        o = await self.get_user_by_id(sender_id)
+        # Skip user operations for anonymous messages
+        if sender_id is None:
+            logging.info(f'{sys._getframe().f_code.co_name}: Skipping user DB operations for anonymous message')
+        else:
+            o = await self.get_user_by_id(sender_id)
 
-        self.session = self.Session()
-        if not bool(self.session.query(ChatUser).filter_by(chat_user_id=sender_id).all()):
+            self.session = self.Session()
+            if not bool(self.session.query(ChatUser).filter_by(chat_user_id=sender_id).all()):
 
-            self.session.add(ChatUser(
+                self.session.add(ChatUser(
+                    chat_user_id=sender_id,
+                    chat_user_is_bot=o['is_bot'],
+                    chat_user_is_verified=o['is_verified'],
+                    chat_user_is_restricted=o['is_restricted'],
+                    chat_user_first_name=o['first_name'],
+                    chat_user_last_name=o['last_name'],
+                    chat_user_name=o['username'],
+                    chat_user_phone=o['phone'],
+                    chat_user_tlogin=datetime.now(),
+                    chat_user_tmodified=datetime.now()
+                ))
+
+            # -----------
+            # Add message
+            # -----------
+            msg = Message(
                 chat_user_id=sender_id,
-                chat_user_is_bot=o['is_bot'],
-                chat_user_is_verified=o['is_verified'],
-                chat_user_is_restricted=o['is_restricted'],
-                chat_user_first_name=o['first_name'],
-                chat_user_last_name=o['last_name'],
-                chat_user_name=o['username'],
-                chat_user_phone=o['phone'],
-                chat_user_tlogin=datetime.now(),
-                chat_user_tmodified=datetime.now()
+                account_id=self.account.account_id,
+                channel_id=channel_id,
+                keyword_id=keyword_id,
+                message_text=message_text,
+                message_is_mention=is_mention,
+                message_is_scheduled=is_scheduled,
+                message_is_fwd=is_fwd,
+                message_is_reply=is_reply,
+                message_is_bot=is_bot,
+                message_is_group=is_group,
+                message_is_private=is_private,
+                message_is_channel=is_channel,
+                message_channel_size=channel_size,
+                message_tcreate=datetime.now()
+            )
+            self.session.add(msg)
+
+            self.session.flush()
+
+            message_id = msg.message_id
+
+            self.session.add(Notification(
+                keyword_id=keyword_id,
+                message_id=message_id,
+                channel_id=channel_id,
+                account_id=self.account.account_id,
+                chat_user_id=sender_id
             ))
 
-        # -----------
-        # Add message
-        # -----------
-        msg = Message(
-            chat_user_id=sender_id,
-            account_id=self.account.account_id,
-            channel_id=channel_id,
-            keyword_id=keyword_id,
-            message_text=message_text,
-            message_is_mention=is_mention,
-            message_is_scheduled=is_scheduled,
-            message_is_fwd=is_fwd,
-            message_is_reply=is_reply,
-            message_is_bot=is_bot,
-            message_is_group=is_group,
-            message_is_private=is_private,
-            message_is_channel=is_channel,
-            message_channel_size=channel_size,
-            message_tcreate=datetime.now()
-        )
-        self.session.add(msg)
-
-        self.session.flush()
-
-        message_id = msg.message_id
-
-        self.session.add(Notification(
-            keyword_id=keyword_id,
-            message_id=message_id,
-            channel_id=channel_id,
-            account_id=self.account.account_id,
-            chat_user_id=sender_id
-        ))
-
-        # -----------
-        # Write to DB
-        # -----------
-        try:
-            self.session.commit()
-        except IntegrityError:
-            pass
-        self.session.close()
+            # -----------
+            # Write to DB
+            # -----------
+            try:
+                self.session.commit()
+            except IntegrityError:
+                pass
+            self.session.close()
 
 
     async def update_keyword_list(self):
