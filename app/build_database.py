@@ -1,4 +1,3 @@
-
 import csv
 import sys
 import os
@@ -6,7 +5,7 @@ import logging
 from dotenv import load_dotenv
 from pathlib import Path
 import sqlalchemy as db
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from models import Account, Channel, ChatUser, Keyword, Message, Monitor, Notification, Base
@@ -87,9 +86,9 @@ def init_add_account():
             account_user_name=os.environ['TELEGRAM_ACCOUNT_USER_NAME'],
             account_phone=account_phone,  # Enter your burner phone number here
             account_is_enabled=True,
-            account_tlogin=datetime.utcnow(),
-            account_tcreate=datetime.utcnow(),
-            account_tmodified=datetime.utcnow()),
+            account_tlogin=datetime.now(timezone.utc),
+            account_tcreate=datetime.now(timezone.utc),
+            account_tmodified=datetime.now(timezone.utc)),
 
     ]
 
@@ -164,7 +163,7 @@ def init_add_channels():
             channel_url=channel_url,
             channel_id=channel_id,
             account_id=account.account_id,
-            channel_tcreate=datetime.utcnow(),
+            channel_tcreate=datetime.now(timezone.utc),
             channel_is_group=channel_is_group,
             channel_is_private=channel_is_private
         ))
@@ -232,8 +231,8 @@ def init_add_keywords():
         session.add(Keyword(
             keyword_description=keyword['keyword_description'],
             keyword_regex=keyword['keyword_regex'],
-            keyword_tmodified=datetime.utcnow(),
-            keyword_tcreate=datetime.utcnow()
+            keyword_tmodified=datetime.now(timezone.utc),
+            keyword_tcreate=datetime.now(timezone.utc)
         ))
         keywords_added += 1
 
@@ -279,8 +278,8 @@ def init_add_monitors():
             session.add(Monitor(
                 channel_id=channel.id,
                 account_id=account.account_id,
-                monitor_tcreate=datetime.utcnow(),
-                monitor_tmodified=datetime.utcnow()
+                monitor_tcreate=datetime.now(timezone.utc),
+                monitor_tmodified=datetime.now(timezone.utc)
             ))
             monitors_added += 1
             channel_count += 1

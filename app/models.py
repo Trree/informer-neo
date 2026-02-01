@@ -1,6 +1,6 @@
 from sqlalchemy import Boolean, Column, Integer, String, DateTime, ForeignKey, Table, BigInteger
 from sqlalchemy.orm import relationship, declarative_base
-from datetime import datetime
+from datetime import datetime, timezone
 
 Base = declarative_base()
 
@@ -22,8 +22,8 @@ class Account(Base):
     account_phone = Column(String(25), unique=True, nullable=False)
     account_tlogin = Column(DateTime)
     account_is_enabled = Column(Boolean, default=True)
-    account_tcreate = Column(DateTime, default=datetime.utcnow)
-    account_tmodified = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    account_tcreate = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    account_tmodified = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     channels = relationship('Channel', back_populates='accounts')
     messages = relationship('Message', back_populates='account')
@@ -50,7 +50,7 @@ class Channel(Base):
     channel_access_hash = Column(String(50))
     channel_size = Column(Integer)
     channel_is_enabled = Column(Boolean, default=True)
-    channel_tcreate = Column(DateTime, default=datetime.utcnow)
+    channel_tcreate = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     messages = relationship('Message')
 
@@ -76,8 +76,8 @@ class ChatUser(Base):
     chat_user_name = Column(String(100))
     chat_user_phone = Column(String(25))
     chat_user_tlogin = Column(DateTime)
-    chat_user_tcreate = Column(DateTime, default=datetime.utcnow)
-    chat_user_tmodified = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    chat_user_tcreate = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    chat_user_tmodified = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     messages = relationship('Message')
 
@@ -94,8 +94,8 @@ class Keyword(Base):
     keyword_description = Column(String(256), nullable=False)
     keyword_regex = Column(String(256), unique=True, nullable=False)
     keyword_is_enabled = Column(Boolean, default=True)
-    keyword_tmodified = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    keyword_tcreate = Column(DateTime, default=datetime.utcnow)
+    keyword_tmodified = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    keyword_tcreate = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     notifications = relationship('Notification', back_populates='keyword')
 
@@ -123,7 +123,7 @@ class Message(Base):
     message_is_private = Column(Boolean, default=False)
     message_is_channel = Column(Boolean, default=False)
     message_channel_size = Column(Integer)
-    message_tcreate = Column(DateTime, default=datetime.utcnow)
+    message_tcreate = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship('ChatUser', back_populates='messages')
     account = relationship('Account', back_populates='messages')
@@ -142,8 +142,8 @@ class Monitor(Base):
     monitor_id = Column(Integer, primary_key=True, index=True)
     channel_id = Column(Integer, ForeignKey('channel.id'), nullable=False)
     account_id = Column(BigInteger, ForeignKey('account.account_id'), nullable=False)  # The account ID (bot)
-    monitor_tcreate = Column(DateTime, default=datetime.utcnow)
-    monitor_tmodified = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    monitor_tcreate = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    monitor_tmodified = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     channel = relationship('Channel')
 
     def __repr__(self):
@@ -161,7 +161,7 @@ class Notification(Base):
     channel_id = Column(Integer, ForeignKey('channel.channel_id'), nullable=False)
     account_id = Column(BigInteger, ForeignKey('account.account_id'), nullable=False)  # The account ID (bot)
     chat_user_id = Column(BigInteger, ForeignKey('chat_user.chat_user_id'), nullable=False)
-    notification_tnotify = Column(DateTime, default=datetime.utcnow)
+    notification_tnotify = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     keyword = relationship('Keyword', back_populates='notifications')
     message = relationship('Message', back_populates='notifications')
