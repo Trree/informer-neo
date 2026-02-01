@@ -234,16 +234,12 @@ class TGInformer:
     # Initialize keywords to monitor
     # ==============================
     async def init_keywords(self):
-        self.keyword_list = []
-        keywords = self.session.query(Keyword).filter_by(keyword_is_enabled=True).all()
-
-        for keyword in keywords:
-            self.keyword_list.append({
-                'id': keyword.keyword_id,
-                'name': keyword.keyword_description,
-                'regex': keyword.keyword_regex
-            })
-            logging.info(f'{sys._getframe().f_code.co_name}: Monitoring keywords: {json.dumps(self.keyword_list, indent=4)}')
+        """
+        Load keywords from database into memory for message filtering.
+        Called on startup and periodically refreshed.
+        """
+        await self.update_keyword_list()
+        logging.info(f'{sys._getframe().f_code.co_name}: Monitoring {len(self.keyword_list)} keywords: {json.dumps(self.keyword_list, indent=4)}')
 
     # ===========================
     # Initialize channels to join
@@ -624,12 +620,32 @@ class TGInformer:
 
 
     async def update_keyword_list(self):
-        # ------------------------------
-        # Lets update keywords in memory
-        # ------------------------------
-        # TODO: functionality to poll the DB for new keywords and refresh in memory
-        logging.info('### updating keyword_list')
-        pass
+        """
+        Update keywords from database without restarting the service.
+        This allows dynamic keyword management.
+        """
+        logging.info(f'{sys._getframe().f_code.co_name}: Refreshing keyword list from database')
+
+        try:
+            self.session = self.Session()
+            keywords = self.session.query(Keyword).filter_by(keyword_is_enabled=True).all()
+
+            # Clear and rebuild keyword list
+            self.keyword_list = []
+            for keyword in keywords:
+                self.keyword_list.append({
+                    'id': keyword.keyword_id,
+                    'name': keyword.keyword_description,
+                    'regex': keyword.keyword_regex
+                })
+
+            self.session.close()
+            logging.info(f'{sys._getframe().f_code.co_name}: Successfully loaded {len(self.keyword_list)} active keywords')
+
+        except Exception as e:
+            logging.error(f'{sys._getframe().f_code.co_name}: Error updating keyword list: {e}')
+            if self.session:
+                self.session.close()
 
     def stop_bot_interval(self):
         self.bot_task.cancel()
@@ -637,14 +653,19 @@ class TGInformer:
    
     # ==============
     # Main coroutine
-    # ==============           
-    async def bot_interval(self): 
+    # ==============
+    async def bot_interval(self):
 
         # ----------------------
         # Telegram service login
         # ----------------------
         logging.info(f'Logging in with account # {self.account.account_phone} ... \n')
-        session_file = 'session/' + self.account.account_phone.replace('+', '')
+
+        # Create session directory if it doesn't exist
+        session_dir = os.path.join(os.path.dirname(__file__), 'session')
+        os.makedirs(session_dir, exist_ok=True)
+
+        session_file = os.path.join(session_dir, self.account.account_phone.replace('+', ''))
         self.client = TelegramClient(session_file, self.account.account_api_id, self.account.account_api_hash)
     
         # -----------------------
