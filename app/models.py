@@ -10,7 +10,7 @@ class Account(Base):
     """
     __tablename__ = 'account'
     id = Column(Integer, index=True, primary_key=True, autoincrement=True)
-    account_id = Column(BigInteger, nullable=False, index=True)
+    account_id = Column(BigInteger, nullable=False, unique=True, index=True)
     account_api_id = Column(Integer, nullable=False)
     account_api_hash = Column(String(50), nullable=False)
     account_is_bot = Column(Boolean, default=False)
@@ -42,7 +42,7 @@ class Channel(Base):
     channel_name = Column(String(256))
     channel_title = Column(String(256))
     channel_url = Column(String(256))
-    account_id = Column(Integer, ForeignKey('account.account_id'), nullable=False)  # The account ID (bot) that spawned the channel
+    account_id = Column(BigInteger, ForeignKey('account.account_id'), nullable=False)  # The account ID (bot) that spawned the channel
     channel_is_mega_group = Column(Boolean)
     channel_is_group = Column(Boolean)
     channel_is_private = Column(Boolean)
@@ -110,7 +110,7 @@ class Message(Base):
     __tablename__ = 'message'
     message_id = Column(Integer, primary_key=True, index=True)
     chat_user_id = Column(Integer, ForeignKey('chat_user.chat_user_id'), nullable=False)
-    account_id = Column(Integer, ForeignKey('account.account_id'), nullable=False)  # The account ID (bot)
+    account_id = Column(BigInteger, ForeignKey('account.account_id'), nullable=False)  # The account ID (bot)
     channel_id = Column(Integer, ForeignKey('channel.channel_id'), nullable=False)
     keyword_id = Column(Integer, ForeignKey('keyword.keyword_id'), nullable=False)
     message_text = Column(String(10000))
@@ -141,7 +141,7 @@ class Monitor(Base):
     __tablename__ = 'monitor'
     monitor_id = Column(Integer, primary_key=True, index=True)
     channel_id = Column(Integer, ForeignKey('channel.id'), nullable=False)
-    account_id = Column(Integer, ForeignKey('account.account_id'), nullable=False)  # The account ID (bot)
+    account_id = Column(BigInteger, ForeignKey('account.account_id'), nullable=False)  # The account ID (bot)
     monitor_tcreate = Column(DateTime, default=datetime.utcnow)
     monitor_tmodified = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     channel = relationship('Channel')
@@ -159,7 +159,7 @@ class Notification(Base):
     keyword_id = Column(Integer, ForeignKey('keyword.keyword_id'), nullable=False)
     message_id = Column(Integer, ForeignKey('message.message_id'), nullable=False)
     channel_id = Column(Integer, ForeignKey('channel.channel_id'), nullable=False)
-    account_id = Column(Integer, ForeignKey('account.account_id'), nullable=False)  # The account ID (bot)
+    account_id = Column(BigInteger, ForeignKey('account.account_id'), nullable=False)  # The account ID (bot)
     chat_user_id = Column(Integer, ForeignKey('chat_user.chat_user_id'), nullable=False)
     notification_tnotify = Column(DateTime, default=datetime.utcnow)
 

@@ -139,7 +139,10 @@ class TGInformer:
             self.account = self.session.query(Account).filter_by(account_id=tg_account_id).first()
         except ProgrammingError as e:
             logging.error(f'Received error {e} \n Database is not set up, setting it up')
+            self.session.close()
             build_database.initialize_db()
+            # Recreate session after tables are created
+            self.session = self.Session()
             self.account = self.session.query(Account).filter_by(account_id=tg_account_id).first()
 
         if not self.account:

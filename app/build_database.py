@@ -8,6 +8,7 @@ from pathlib import Path
 import sqlalchemy as db
 from datetime import datetime
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import IntegrityError
 from models import Account, Channel, ChatUser, Keyword, Message, Monitor, Notification, Base
 logging.getLogger().setLevel(logging.INFO)
 
@@ -34,13 +35,14 @@ def init_db():
         # Create all tables using Base metadata (more efficient and handles existing tables gracefully)
         # checkfirst=True (default) ensures tables are only created if they don't exist
         Base.metadata.create_all(engine, checkfirst=True)
+        # Commit the table creation immediately to ensure tables persist
+        if engine:
+            with engine.connect() as conn:
+                conn.commit()
         logging.info(f'{sys._getframe().f_code.co_name}: Database tables created successfully')
     except Exception as e:
         logging.error(f'{sys._getframe().f_code.co_name}: Error creating database tables: {e}')
         raise
-    finally:
-        if session:
-            session.close()
 
 
 """
@@ -307,14 +309,26 @@ def initialize_db():
     SERVER_MODE = os.environ['ENV']
     POSTGRES_CONNECTOR_STRING = f'postgresql+psycopg2://{db_user}:{db_password}@{db_ip_address}:{db_port}/{db_database}'
 
+    # Set the global engine variable before calling init_db()
     engine = db.create_engine(POSTGRES_CONNECTOR_STRING, echo=True)
     Session = sessionmaker(bind=engine)
-    session = None
-    session = Session()
 
     # PostgreSQL automatically supports UTF-8 encoding, no special configuration needed
+    # Create tables first (this commits immediately)
     init_db()
-    init_data()
+
+    # Create session after tables are created and insert data
+    # If data insertion fails, tables will still exist
+    try:
+        session = Session()
+        init_data()
+    except Exception as e:
+        logging.error(f'Error initializing data: {e}')
+        if session:
+            session.close()
+        # Re-raise only if it's a critical error, otherwise tables are still created
+        logging.info('Tables were created successfully, but data initialization failed. You may need to add data manually.')
+        raise
 
 
 if __name__ == '__main__':

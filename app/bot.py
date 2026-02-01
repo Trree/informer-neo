@@ -25,21 +25,11 @@ from informer import TGInformer
 #   virtualenv venv
 #   source venv/bin/activate
 #   pip install -r requirements.txt
-#   python3 informer.py
+#   python3 bot.py
 
 # Read more: https://github.com/paulpierre/informer/
 
 if __name__ == '__main__':
-
-    informer = TGInformer(
-        db_database = os.environ['MYSQL_DATABASE'],
-        db_user = os.environ['MYSQL_USER'],
-        db_password = os.environ['MYSQL_PASSWORD'],
-        db_ip_address = os.environ['MYSQL_IP_ADDRESS'],
-        db_port = os.environ['MYSQL_PORT'],
-        tg_account_id = os.environ['TELEGRAM_ACCOUNT_ID'],
-        tg_notifications_channel_id = os.environ['TELEGRAM_NOTIFICATIONS_CHANNEL_ID'],
-        google_credentials_path = os.environ['GOOGLE_APPLICATION_CREDENTIALS'],
-        google_sheet_name = os.environ['GOOGLE_SHEET_NAME']
-    )
-    informer.init()
+    # TGInformer will read all parameters from environment variables
+    # No need to pass them explicitly since they have default values
+    informer = TGInformer()
