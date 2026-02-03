@@ -574,67 +574,78 @@ class TGInformer:
         # Skip user operations for anonymous messages
         if sender_id is None:
             logging.info(f'{sys._getframe().f_code.co_name}: Skipping user DB operations for anonymous message')
-        else:
-            o = await self.get_user_by_id(sender_id)
+            return
 
-            self.session = self.Session()
-            if not bool(self.session.query(ChatUser).filter_by(chat_user_id=sender_id).all()):
+        # Try to get user details, but continue even if it fails
+        user_details = None
+        try:
+            user_details = await self.get_user_by_id(sender_id)
+        except ValueError as e:
+            logging.warning(f'{sys._getframe().f_code.co_name}: Could not retrieve user entity for sender_id {sender_id}: {e}')
+            logging.info(f'{sys._getframe().f_code.co_name}: Continuing without user details')
+        except Exception as e:
+            logging.error(f'{sys._getframe().f_code.co_name}: Unexpected error retrieving user {sender_id}: {e}')
+            logging.info(f'{sys._getframe().f_code.co_name}: Continuing without user details')
 
-                self.session.add(ChatUser(
-                    chat_user_id=sender_id,
-                    chat_user_is_bot=o['is_bot'],
-                    chat_user_is_verified=o['is_verified'],
-                    chat_user_is_restricted=o['is_restricted'],
-                    chat_user_first_name=o['first_name'],
-                    chat_user_last_name=o['last_name'],
-                    chat_user_name=o['username'],
-                    chat_user_phone=o['phone'],
-                    chat_user_tlogin=datetime.now(),
-                    chat_user_tmodified=datetime.now()
-                ))
+        self.session = self.Session()
 
-            # -----------
-            # Add message
-            # -----------
-            msg = Message(
+        # Only add ChatUser if we successfully retrieved user details
+        if user_details and not bool(self.session.query(ChatUser).filter_by(chat_user_id=sender_id).all()):
+            self.session.add(ChatUser(
                 chat_user_id=sender_id,
-                account_id=self.account.account_id,
-                channel_id=channel_id,
-                keyword_id=keyword_id,
-                message_text=message_text,
-                message_is_mention=is_mention,
-                message_is_scheduled=is_scheduled,
-                message_is_fwd=is_fwd,
-                message_is_reply=is_reply,
-                message_is_bot=is_bot,
-                message_is_group=is_group,
-                message_is_private=is_private,
-                message_is_channel=is_channel,
-                message_channel_size=channel_size,
-                message_tcreate=datetime.now()
-            )
-            self.session.add(msg)
-
-            self.session.flush()
-
-            message_id = msg.message_id
-
-            self.session.add(Notification(
-                keyword_id=keyword_id,
-                message_id=message_id,
-                channel_id=channel_id,
-                account_id=self.account.account_id,
-                chat_user_id=sender_id
+                chat_user_is_bot=user_details['is_bot'],
+                chat_user_is_verified=user_details['is_verified'],
+                chat_user_is_restricted=user_details['is_restricted'],
+                chat_user_first_name=user_details['first_name'],
+                chat_user_last_name=user_details['last_name'],
+                chat_user_name=user_details['username'],
+                chat_user_phone=user_details['phone'],
+                chat_user_tlogin=datetime.now(),
+                chat_user_tmodified=datetime.now()
             ))
 
-            # -----------
-            # Write to DB
-            # -----------
-            try:
-                self.session.commit()
-            except IntegrityError:
-                pass
-            self.session.close()
+        # -----------
+        # Add message
+        # -----------
+        msg = Message(
+            chat_user_id=sender_id,
+            account_id=self.account.account_id,
+            channel_id=channel_id,
+            keyword_id=keyword_id,
+            message_text=message_text,
+            message_is_mention=is_mention,
+            message_is_scheduled=is_scheduled,
+            message_is_fwd=is_fwd,
+            message_is_reply=is_reply,
+            message_is_bot=is_bot,
+            message_is_group=is_group,
+            message_is_private=is_private,
+            message_is_channel=is_channel,
+            message_channel_size=channel_size,
+            message_tcreate=datetime.now()
+        )
+        self.session.add(msg)
+
+        self.session.flush()
+
+        message_id = msg.message_id
+
+        self.session.add(Notification(
+            keyword_id=keyword_id,
+            message_id=message_id,
+            channel_id=channel_id,
+            account_id=self.account.account_id,
+            chat_user_id=sender_id
+        ))
+
+        # -----------
+        # Write to DB
+        # -----------
+        try:
+            self.session.commit()
+        except IntegrityError:
+            pass
+        self.session.close()
 
 
     async def update_keyword_list(self):
