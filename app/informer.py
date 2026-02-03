@@ -576,16 +576,18 @@ class TGInformer:
             logging.info(f'{sys._getframe().f_code.co_name}: Skipping user DB operations for anonymous message')
             return
 
-        # Try to get user details, but continue even if it fails
+        # Try to get user details, but skip DB operations if it fails
         user_details = None
         try:
             user_details = await self.get_user_by_id(sender_id)
         except ValueError as e:
             logging.warning(f'{sys._getframe().f_code.co_name}: Could not retrieve user entity for sender_id {sender_id}: {e}')
-            logging.info(f'{sys._getframe().f_code.co_name}: Continuing without user details')
+            logging.info(f'{sys._getframe().f_code.co_name}: Skipping DB operations for user that cannot be retrieved')
+            return
         except Exception as e:
             logging.error(f'{sys._getframe().f_code.co_name}: Unexpected error retrieving user {sender_id}: {e}')
-            logging.info(f'{sys._getframe().f_code.co_name}: Continuing without user details')
+            logging.info(f'{sys._getframe().f_code.co_name}: Skipping DB operations for user that cannot be retrieved')
+            return
 
         self.session = self.Session()
 
