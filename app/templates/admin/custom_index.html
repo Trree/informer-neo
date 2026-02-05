@@ -1,0 +1,102 @@
+{% extends 'admin/master.html' %}
+
+{% block head_css %}
+{{ super() }}
+<style>
+    .stats-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+    .stats-col {
+        flex: 1;
+        min-width: 150px;
+    }
+    .stats-card {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        padding: 20px;
+        border-radius: 4px;
+        text-align: center;
+        height: 100%;
+    }
+    .stats-card h3 {
+        margin: 0 0 5px 0;
+        font-size: 2em;
+        color: #333;
+    }
+    .stats-card p {
+        margin: 0;
+        color: #666;
+        font-size: 0.9em;
+    }
+    .notification-item {
+        padding: 10px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    .notification-item:last-child {
+        border-bottom: none;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="stats-row">
+        <div class="stats-col">
+            <div class="stats-card">
+                <h3>{{ stats.accounts }}</h3>
+                <p>账户</p>
+            </div>
+        </div>
+        <div class="stats-col">
+            <div class="stats-card">
+                <h3>{{ stats.channels }}</h3>
+                <p>频道</p>
+            </div>
+        </div>
+        <div class="stats-col">
+            <div class="stats-card">
+                <h3>{{ stats.keywords }}</h3>
+                <p>关键词</p>
+            </div>
+        </div>
+        <div class="stats-col">
+            <div class="stats-card">
+                <h3>{{ stats.notifications }}</h3>
+                <p>通知</p>
+            </div>
+        </div>
+        <div class="stats-col">
+            <div class="stats-card">
+                <h3>{{ stats.messages }}</h3>
+                <p>消息</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 style="margin: 0;">最近通知</h5>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    {% if recent_notifications %}
+                        {% for notification in recent_notifications %}
+                        <div class="notification-item">
+                            <strong>关键词:</strong> {{ notification.keyword.keyword_description if notification.keyword else 'N/A' }} |
+                            <strong>频道:</strong> {{ notification.channel.channel_name if notification.channel else 'N/A' }} |
+                            <strong>时间:</strong> {{ notification.notification_tnotify.strftime('%Y-%m-%d %H:%M:%S') if notification.notification_tnotify else 'N/A' }}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted" style="padding: 15px;">暂无通知记录</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

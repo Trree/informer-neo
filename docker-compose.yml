@@ -61,5 +61,27 @@ services:
     ports:
       - 9999:8080
 
+  # ==================
+  # Flask-Admin Panel
+  # ==================
+  # available at http://localhost:5000
+  app_admin:
+    env_file:
+      - informer.env
+    environment:
+      - POSTGRES_HOST=db_informer
+      - POSTGRES_PORT=5432
+    build: .
+    command: /bin/bash -c "sleep 20; gunicorn -w 4 -b 0.0.0.0:5000 admin_panel:app"
+    container_name: app_admin
+    volumes:
+      - ./app/:/usr/local/app
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db_informer
+    links:
+      - db_informer
+
 volumes:
   db_data: {}

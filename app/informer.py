@@ -172,9 +172,18 @@ class TGInformer:
     # Get # of participants
     # =====================
     async def get_channel_user_count(self, channel):
-        data = await self.client.get_entity(PeerChannel(-channel))
-        users = await self.client.get_participants(data)
-        return users.total
+        try:
+            data = await self.client.get_entity(PeerChannel(-channel))
+            # Try to get participant count from entity first (works for public channels without admin rights)
+            if hasattr(data, 'participants_count') and data.participants_count:
+                return data.participants_count
+            # If not available, try get_participants (requires admin rights)
+            users = await self.client.get_participants(data)
+            return users.total
+        except Exception as e:
+            # If we don't have permission or any other error occurs, return 0
+            logging.warning(f'Could not get participant count for channel {channel}: {e}')
+            return 0
 
     # =======================
     # Get channel by group ID
@@ -571,25 +580,23 @@ class TGInformer:
         # --------------
         # Add user to DB
         # --------------
-        # Skip user operations for anonymous messages
-        if sender_id is None:
-            logging.info(f'{sys._getframe().f_code.co_name}: Skipping user DB operations for anonymous message')
-            return
-
-        # Try to get user details, but skip DB operations if it fails
-        user_details = None
-        try:
-            user_details = await self.get_user_by_id(sender_id)
-        except ValueError as e:
-            logging.warning(f'{sys._getframe().f_code.co_name}: Could not retrieve user entity for sender_id {sender_id}: {e}')
-            logging.info(f'{sys._getframe().f_code.co_name}: Skipping DB operations for user that cannot be retrieved')
-            return
-        except Exception as e:
-            logging.error(f'{sys._getframe().f_code.co_name}: Unexpected error retrieving user {sender_id}: {e}')
-            logging.info(f'{sys._getframe().f_code.co_name}: Skipping DB operations for user that cannot be retrieved')
-            return
-
         self.session = self.Session()
+
+        # Try to get user details for ChatUser creation
+        # Skip user operations for anonymous messages or channel posts
+        user_details = None
+        actual_sender_id = sender_id  # Will be set to None if we can't retrieve user details
+        if sender_id is not None:
+            try:
+                user_details = await self.get_user_by_id(sender_id)
+            except ValueError as e:
+                logging.warning(f'{sys._getframe().f_code.co_name}: Could not retrieve user entity for sender_id {sender_id}: {e}')
+                logging.info(f'{sys._getframe().f_code.co_name}: Skipping ChatUser creation, setting chat_user_id to NULL')
+                actual_sender_id = None  # Set to None for channel posts
+            except Exception as e:
+                logging.error(f'{sys._getframe().f_code.co_name}: Unexpected error retrieving user {sender_id}: {e}')
+                logging.info(f'{sys._getframe().f_code.co_name}: Skipping ChatUser creation, setting chat_user_id to NULL')
+                actual_sender_id = None  # Set to None when user cannot be retrieved
 
         # Only add ChatUser if we successfully retrieved user details
         if user_details and not bool(self.session.query(ChatUser).filter_by(chat_user_id=sender_id).all()):
@@ -610,7 +617,7 @@ class TGInformer:
         # Add message
         # -----------
         msg = Message(
-            chat_user_id=sender_id,
+            chat_user_id=actual_sender_id,  # Use actual_sender_id which may be None for channel posts
             account_id=self.account.account_id,
             channel_id=channel_id,
             keyword_id=keyword_id,
@@ -637,7 +644,7 @@ class TGInformer:
             message_id=message_id,
             channel_id=channel_id,
             account_id=self.account.account_id,
-            chat_user_id=sender_id
+            chat_user_id=actual_sender_id  # Use actual_sender_id which may be None for channel posts
         ))
 
         # -----------

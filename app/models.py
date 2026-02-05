@@ -109,7 +109,7 @@ class Message(Base):
     """
     __tablename__ = 'message'
     message_id = Column(Integer, primary_key=True, index=True)
-    chat_user_id = Column(BigInteger, ForeignKey('chat_user.chat_user_id'), nullable=False)
+    chat_user_id = Column(BigInteger, ForeignKey('chat_user.chat_user_id'), nullable=True)  # Allow NULL for channel posts
     account_id = Column(BigInteger, ForeignKey('account.account_id'), nullable=False)  # The account ID (bot)
     channel_id = Column(BigInteger, ForeignKey('channel.channel_id'), nullable=False)
     keyword_id = Column(Integer, ForeignKey('keyword.keyword_id'), nullable=False)
@@ -160,7 +160,7 @@ class Notification(Base):
     message_id = Column(Integer, ForeignKey('message.message_id'), nullable=False)
     channel_id = Column(BigInteger, ForeignKey('channel.channel_id'), nullable=False)
     account_id = Column(BigInteger, ForeignKey('account.account_id'), nullable=False)  # The account ID (bot)
-    chat_user_id = Column(BigInteger, ForeignKey('chat_user.chat_user_id'), nullable=False)
+    chat_user_id = Column(BigInteger, ForeignKey('chat_user.chat_user_id'), nullable=True)  # Allow NULL for channel posts
     notification_tnotify = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     keyword = relationship('Keyword', back_populates='notifications')

@@ -1,0 +1,57 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+<div class="container">
+    <h2>拉取历史消息 - {{ channel.channel_name }}</h2>
+
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h3 class="panel-title">频道信息</h3>
+        </div>
+        <div class="panel-body">
+            <p><strong>频道名称:</strong> {{ channel.channel_name }}</p>
+            <p><strong>频道标题:</strong> {{ channel.channel_title }}</p>
+            <p><strong>频道URL:</strong> <a href="{{ channel.channel_url }}" target="_blank">{{ channel.channel_url }}</a></p>
+            <p><strong>频道ID:</strong> {{ channel.channel_id }}</p>
+        </div>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h3 class="panel-title">拉取设置</h3>
+        </div>
+        <div class="panel-body">
+            <form method="POST" action="{{ url_for('channel.execute_fetch_history_view') }}">
+                <input type="hidden" name="channel_id" value="{{ channel.id }}">
+
+                <div class="form-group">
+                    <label for="days">拉取天数:</label>
+                    <input type="number" class="form-control" id="days" name="days" value="7" min="1" max="365" required>
+                    <p class="help-block">从当前时间往前推多少天的消息（1-365天）</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="limit">消息数量限制:</label>
+                    <input type="number" class="form-control" id="limit" name="limit" value="100" min="1" max="10000" required>
+                    <p class="help-block">最多拉取多少条消息（1-10000条）</p>
+                </div>
+
+                <div class="alert alert-info">
+                    <strong>注意:</strong>
+                    <ul>
+                        <li>拉取历史消息可能需要较长时间，请耐心等待</li>
+                        <li>时间范围基于当前系统时间计算</li>
+                        <li>消息时间戳使用 Telegram 原始消息时间</li>
+                        <li>拉取过程中会自动匹配关键词并生成通知</li>
+                    </ul>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">开始拉取</button>
+                    <a href="{{ url_for('channel.index_view') }}" class="btn btn-default">取消</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
